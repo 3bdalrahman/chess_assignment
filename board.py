@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import ttk
+import random
 
 # Unicode chess pieces dictionary
 UNICODE_PIECES = {
@@ -6,62 +8,106 @@ UNICODE_PIECES = {
     'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
 }
 
-class ChessBoardApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Chess Board")
-        self.geometry("530x550")
+# Function to generate a random puzzle
+def generate_random_puzzle():
+    # Initialize an empty 8x8 board
+    puzzle = [['' for _ in range(8)] for _ in range(8)]
+
+    # Place random pieces on the board
+    for _ in range(10):  # Let's say we want to place 10 pieces randomly
+        piece = random.choice(list(UNICODE_PIECES.values()))
+        row = random.randint(0, 7)
+        col = random.randint(0, 7)
+        puzzle[row][col] = piece
+
+    return puzzle
+
+
+class ChessPuzzle(tk.Frame):
+    def __init__(self, parent, puzzle):
+        super().__init__(parent)
+        self.puzzle = puzzle
         self.create_board()
 
     def create_board(self):
-        self.board = []
-        square_size = 60  # Size of each square
-
+        square_size = 55  # Size of each square
         for row in range(8):
-            current_row = []
             for col in range(8):
-                color = "#FFFFE4" if (row + col) % 2 == 0 else "red"
+                color = "#FFFFE4" if (row + col) % 2 == 0 else "#7ABA78"
                 square = tk.Frame(self, width=square_size, height=square_size, bg=color)
                 square.grid(row=row, column=col, padx=1, pady=1)
-                current_row.append(square)
 
-                # Display pieces on the board (starting position)
-                piece_char = UNICODE_PIECES.get(self.initial_board_position(row, col), '')
+                piece_char = self.puzzle[row][col]
                 if piece_char:
                     label_piece = tk.Label(square, text=piece_char, font=("Arial", 36), bg=color)
-                    label_piece.pack(fill='both', expand=True)  # Ensure label fills the square
-                    label_piece.bind("<Button-1>", lambda event, r=row, c=col: self.on_square_click(r, c))
+                    label_piece.pack(fill='both', expand=True)
 
-            self.board.append(current_row)
+# Predefined puzzles
+PUZZLES = [
+    # Puzzle 1
+    [
+        ['r', '', '', '', '', 'k', '', ''],
+        ['', 'p', '', '', '', '', '', ''],
+        ['', '', '', '', 'P', 'P', 'P', ''],
+        ['p', '', '', '', '', 'N', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['P', '', '', '', '', '', '', ''],
+        ['', 'P', '', '', '', '', '', ''],
+        ['K', '', '', '', '', '', '', '']
+    ],
+    # Puzzle 2
+    [
+        ['', '', '', '', '', '', '', ''],
+        ['p', '', '', '', '', '', '', ''],
+        ['', 'p', '', '', '', '', 'p', ''],
+        ['k', 'P', '', '', '', '', 'P', 'p'],
+        ['', '', 'P', '', '', '', '', 'P'],
+        ['', 'P', '', '', '', '', '', ''],
+        ['', 'K', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', '']
+    ],
+    # Puzzle 3
+    [
+        ['', '', '', '', '', '', 'K', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', 'p', 'p', 'p'],
+        ['', '', '', '', '', '', 'k', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['b', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', '']
+    ]
+]
 
-        # Labels for file (a-h) and rank (1-8)
-        files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        ranks = ['8', '7', '6', '5', '4', '3', '2', '1']
+def generate_static_puzzle(puzzle_number):
+    # Convert piece abbreviations to unicode characters
+    return [[UNICODE_PIECES.get(piece, '') for piece in row] for row in PUZZLES[puzzle_number]]
 
-        for col in range(8):
-            label_file = tk.Label(self, text=files[col], bg="white", width=7, height=3, padx=0, pady=0)
-            label_file.grid(row=8, column=col, padx=1, pady=1, sticky="ew")
+class MainApplication(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Chess Puzzles")
+        self.geometry("490x570")  # Adjust if necessary
+        self.create_notebook()
 
-        for row in range(8):
-            label_rank = tk.Label(self, text=ranks[row], bg="white", width=3, height=2, padx=0, pady=0)
-            label_rank.grid(row=row, column=8, padx=1, pady=1, sticky="ns")
+    def create_notebook(self):
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(expand=True, fill='both')
 
-    def initial_board_position(self, row, col):
-        # Return the piece abbreviation for the initial chessboard setup
-        if row == 1:
-            return 'P'  # White pawn (second row)
-        elif row == 6:
-            return 'p'  # Black pawn (seventh row)
-        elif row == 0 or row == 7:
-            pieces_row = 'RNBQKBNR' if row == 0 else 'rnbqkbnr'
-            return pieces_row[col]  # Return corresponding piece for first and eighth row
-        else:
-            return None  # Empty square for other rows
+        # Create three static puzzles
+        for i in range(3):
+            puzzle_data = generate_static_puzzle(i)  # Ensure this returns a valid puzzle
+            page = ChessPuzzle(self.notebook, puzzle_data)
+            self.notebook.add(page, text=f'Puzzle {i+1}')  # Check tabs are added correctly
 
-    def on_square_click(self, row, col):
-        # Handle square click event
-        print(f"Clicked square: {chr(97 + col)}{8 - row}")  # Example: converts 0-7 to 'a'-'h' and 0-7 to '8'-'1'
+        # Start button at the bottom
+        start_button = tk.Button(self, text="Start", command=self.start_puzzle)
+        start_button.pack(side='bottom')  # Check button is visible
+
+    def start_puzzle(self):
+        # Implement puzzle starting logic
+        pass
 
 if __name__ == "__main__":
-    app = ChessBoardApp()
-    app.mainloop()
+    app = MainApplication()
+    app.mainloop()  # Ensure this is called

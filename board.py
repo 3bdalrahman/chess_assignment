@@ -17,34 +17,34 @@ PUZZLES = [
     [
         ['', '', '', '', '', '', 'k', ''],
         ['', '', '', '', '', 'p', 'p', 'p'],
-        ['', '', '', '', 'r', 'b', '', ''],
-        ['', '', '', '', '', 'P', '', ''],
+        ['', '', '', 'b', '', 'r', '', ''],
+        ['', '', '', '', 'P', '', '', ''],
         ['', '', '', '', '', '', '', ''],
         ['', '', '', '', '', '', '', ''],
         ['', '', '', '', '', 'P', 'P', 'P'],
-        ['', '', '', '', '', '', '', 'K']
+        ['', '', '', '', '', '', 'K', '']
     ],
     # Puzzle 2
     [
         ['', '', '', '', '', '', 'k', ''],
         ['', '', '', '', '', 'p', 'p', 'p'],
-        ['', '', '', '', 'r', 'b', '', ''],
-        ['', '', '', '', '', 'P', '', ''],
+        ['', '', '', 'b', '', 'b', '', ''],
+        ['', '', '', '', 'P', '', '', ''],
         ['', '', '', '', '', '', '', ''],
         ['', '', '', '', '', '', '', ''],
         ['', '', '', '', '', 'P', 'P', 'P'],
-        ['', '', '', '', '', '', '', 'K']
+        ['', '', '', '', '', '', 'K', '']
     ],
     # Puzzle 3
     [
         ['', '', '', '', '', '', 'k', ''],
         ['', '', '', '', '', 'p', 'p', 'p'],
-        ['', '', '', '', 'r', 'b', '', ''],
-        ['', '', '', '', '', 'P', '', ''],
+        ['', '', '', 'r', '', 'b', '', ''],
+        ['', '', '', '', 'P', '', '', ''],
         ['', '', '', '', '', '', '', ''],
         ['', '', '', '', '', '', '', ''],
         ['', '', '', '', '', 'P', 'P', 'P'],
-        ['', '', '', '', '', '', '', 'K']
+        ['', '', '', '', '', '', 'K', '']
     ]
 ]
 
@@ -57,6 +57,27 @@ class ChessPuzzle(tk.Frame):
         self.piece_scores = {'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9}
         self.create_board()
         self.moves_executed = False
+
+    def highlight_possible_moves(self):
+        white_pawns = self.detect_white_pawns()
+
+        for pawn_position in white_pawns:
+            legal_moves_with_pieces = self.detect_legal_moves_with_pieces(pawn_position)
+            best_move = self.find_best_move(legal_moves_with_pieces)
+            self.highlight_moves(legal_moves_with_pieces, best_move)
+
+    def highlight_moves(self, legal_moves_with_pieces, best_move):
+        for move, piece in legal_moves_with_pieces:
+            row, col = move
+            square_frame = self.squares[row][col]
+            square_frame.config(bg="#D3D3D3")  # Change background color to gray for all squares
+
+            # Change background color to red for best move
+            if best_move:
+                row, col = best_move
+                square_frame = self.squares[row][col]
+                for widget in square_frame.winfo_children():
+                    widget.config(bg="red")
 
     def create_board(self):
         square_size = 55  # Size of each square
@@ -199,7 +220,7 @@ class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Chess Puzzles")
-        self.geometry("490x570")  # Set initial window size
+        self.geometry("490x600")  # Increased height to accommodate the button
         self.create_notebook()
 
     def create_notebook(self):
@@ -211,6 +232,17 @@ class MainApplication(tk.Tk):
         for i, puzzle_data in enumerate(PUZZLES):
             page = ChessPuzzle(self.notebook, puzzle_data)
             self.notebook.add(page, text=f'Puzzle {i+1}')
+
+        # Create an Analysis button
+        analysis_button = tk.Button(self, text="Analysis", command=self.analyze_moves)
+        analysis_button.pack(side='bottom')
+
+
+    def analyze_moves(self):
+        # Analyze and highlight possible moves
+        selected_index = self.notebook.index(self.notebook.select())
+        puzzle_frame = self.notebook.winfo_children()[selected_index]
+        puzzle_frame.highlight_possible_moves()
 
 if __name__ == "__main__":
     app = MainApplication()

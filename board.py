@@ -53,6 +53,7 @@ class ChessPuzzle(tk.Frame):
         super().__init__(parent)
         self.parent = parent
         self.puzzle = puzzle
+        self.original_puzzle = [row[:] for row in puzzle]  # Create a copy of the original puzzle
         self.piece_scores = {'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9}
         self.create_board()
         self.moves_executed = False
@@ -86,6 +87,12 @@ class ChessPuzzle(tk.Frame):
 
                 row_squares.append(square)
             self.squares.append(row_squares)
+
+        # Create start and undo buttons
+        self.start_button = tk.Button(self, text="Move", command=self.start_puzzle)
+        self.start_button.grid(row=9, column=0, columnspan=4, sticky='we', padx=5, pady=5)
+        self.undo_button = tk.Button(self, text="Undo", command=self.undo_move, state=tk.DISABLED)
+        self.undo_button.grid(row=9, column=4, columnspan=4, sticky='we', padx=5, pady=5)
 
     def evaluate_move(self, row, col):
         """
@@ -173,6 +180,20 @@ class ChessPuzzle(tk.Frame):
                                            bg=color)
                     label_piece.place(relx=0.5, rely=0.5, anchor='center')  # Center the label within the square
 
+    def start_puzzle(self):
+        self.find_best_moves()
+        self.start_button.grid_forget()  # Hide the start button
+        self.undo_button.config(state=tk.NORMAL)  # Enable the undo button
+
+    def undo_move(self):
+        # Restore the puzzle to its original state
+        for i in range(8):
+            for j in range(8):
+                self.puzzle[i][j] = self.original_puzzle[i][j]
+        self.update_display()  # Update the display after undoing the move
+        self.moves_executed = False
+        self.start_button.grid(row=9, column=0, columnspan=4, sticky='we', padx=5, pady=5)  # Show the start button
+        self.undo_button.config(state=tk.DISABLED)  # Disable the undo button
 
 class MainApplication(tk.Tk):
     def __init__(self):
@@ -190,16 +211,6 @@ class MainApplication(tk.Tk):
         for i, puzzle_data in enumerate(PUZZLES):
             page = ChessPuzzle(self.notebook, puzzle_data)
             self.notebook.add(page, text=f'Puzzle {i+1}')
-
-        # Create a start button
-        start_button = tk.Button(self, text="Start", command=self.start_puzzles)
-        start_button.pack(side='bottom')
-
-    def start_puzzles(self):
-        # Start solving puzzles
-        selected_index = self.notebook.index(self.notebook.select())
-        puzzle_frame = self.notebook.winfo_children()[selected_index]
-        puzzle_frame.find_best_moves()
 
 if __name__ == "__main__":
     app = MainApplication()

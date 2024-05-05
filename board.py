@@ -51,8 +51,11 @@ PUZZLES = [
 class ChessPuzzle(tk.Frame):
     def __init__(self, parent, puzzle):
         super().__init__(parent)
+        self.parent = parent
         self.puzzle = puzzle
+        self.piece_scores = {'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9}
         self.create_board()
+        self.moves_executed = False
 
     def create_board(self):
         square_size = 55  # Size of each square
@@ -81,20 +84,95 @@ class ChessPuzzle(tk.Frame):
                     label_piece = tk.Label(square, text=UNICODE_PIECES.get(piece_char, ''), font=("Arial", 36), bg=color)
                     label_piece.pack(fill='both', expand=True)
 
-                # Bind click event to the square using a closure to capture current row and col
-                square.bind("<Button-1>", lambda event, r=row, c=col: self.on_square_click(r, c))
-
                 row_squares.append(square)
             self.squares.append(row_squares)
 
-    def on_square_click(self, row, col):
-        # Handle click event on chessboard square
-        clicked_square_name = f'{files[col]}{ranks[7-row]}'  # Get square name (e.g., 'a1', 'h8')
+    def evaluate_move(self, row, col):
+        """
+        Evaluate a move based on the scoring system:
+        - Capture: +1
+        - Move forward: 0
+        - Move backward: -1
+        """
+        if not (0 <= row < 8 and 0 <= col < 8):
+            return -1  # Invalid move (move backward)
+
         piece_char = self.puzzle[row][col]
-        if piece_char:
-            print(f"Clicked Square: {clicked_square_name}, Piece: {piece_char}")
+        if piece_char == 'P':
+            return 0  # Move forward
+        elif piece_char in ('r', 'n', 'b', 'q', 'k', 'p'):
+            return 1  # Capture
         else:
-            print(f"Clicked Square: {clicked_square_name}, Empty")
+            return -1  # Empty square (move backward)
+
+    def find_best_moves(self):
+        if not self.moves_executed:
+            white_pawns = self.detect_white_pawns()
+
+            for pawn_position in white_pawns:
+                legal_moves_with_pieces = self.detect_legal_moves_with_pieces(pawn_position)
+                best_move = self.find_best_move(legal_moves_with_pieces)
+                if best_move:
+                    self.execute_move(pawn_position, best_move)
+                    self.moves_executed = True
+
+    def find_best_move(self, legal_moves_with_pieces):
+        best_score = float('-inf')
+        best_move = None
+
+        for move, piece in legal_moves_with_pieces:
+            if piece.islower():
+                score = self.piece_scores.get(piece.lower(), 0)
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+
+        return best_move
+
+    def execute_move(self, pawn_position, best_move):
+        row, col = pawn_position
+        new_row, new_col = best_move
+
+        self.puzzle[row][col] = ' '  # Remove the pawn from its current position
+        self.puzzle[new_row][new_col] = 'P'  # Move the pawn to the best move position
+        self.update_display()  # Update the display after moving
+
+    def detect_white_pawns(self):
+        white_pawn_positions = []
+        for row in range(8):
+            for col in range(8):
+                piece = self.puzzle[row][col]
+                if piece == 'P':  # 'P' represents a white pawn
+                    white_pawn_positions.append((row, col))
+        return white_pawn_positions
+
+    def detect_legal_moves_with_pieces(self, pawn_position):
+        legal_moves_with_pieces = []
+        row, col = pawn_position
+        # Check if the pawn can move one square forward
+        if row > 0 and self.puzzle[row - 1][col] == ' ':
+            legal_moves_with_pieces.append(((row - 1, col), self.puzzle[row - 1][col]))
+        # Check if the pawn can move diagonally left to capture an opponent's piece
+        if row > 0 and col > 0 and self.puzzle[row - 1][col - 1] != ' ':
+            legal_moves_with_pieces.append(((row - 1, col - 1), self.puzzle[row - 1][col - 1]))
+        # Check if the pawn can move diagonally right to capture an opponent's piece
+        if row > 0 and col < 7 and self.puzzle[row - 1][col + 1] != ' ':
+            legal_moves_with_pieces.append(((row - 1, col + 1), self.puzzle[row - 1][col + 1]))
+        return legal_moves_with_pieces
+
+    def update_display(self):
+        for row_idx, row in enumerate(self.puzzle):
+            for col_idx, piece_char in enumerate(row):
+                square_frame = self.squares[row_idx][col_idx]
+                for widget in square_frame.winfo_children():
+                    widget.destroy()
+
+                if piece_char:
+                    color = "#FFFFE4" if (row_idx + col_idx) % 2 == 0 else "#7ABA78"
+                    label_piece = tk.Label(square_frame, text=UNICODE_PIECES.get(piece_char, ''), font=("Arial", 36),
+                                           bg=color)
+                    label_piece.place(relx=0.5, rely=0.5, anchor='center')  # Center the label within the square
+
 
 class MainApplication(tk.Tk):
     def __init__(self):
@@ -113,13 +191,15 @@ class MainApplication(tk.Tk):
             page = ChessPuzzle(self.notebook, puzzle_data)
             self.notebook.add(page, text=f'Puzzle {i+1}')
 
-        # Create a dummy start button at the bottom
-        start_button = tk.Button(self, text="Start", command=self.start_puzzle)
+        # Create a start button
+        start_button = tk.Button(self, text="Start", command=self.start_puzzles)
         start_button.pack(side='bottom')
 
-    def start_puzzle(self):
-        # Placeholder for puzzle starting logic
-        pass
+    def start_puzzles(self):
+        # Start solving puzzles
+        selected_index = self.notebook.index(self.notebook.select())
+        puzzle_frame = self.notebook.winfo_children()[selected_index]
+        puzzle_frame.find_best_moves()
 
 if __name__ == "__main__":
     app = MainApplication()

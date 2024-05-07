@@ -54,7 +54,7 @@ class ChessPuzzle(tk.Frame):
         self.parent = parent
         self.puzzle = puzzle
         self.original_puzzle = [row[:] for row in puzzle]  # Create a copy of the original puzzle
-        self.piece_scores = {'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9}
+        self.piece_scores = {'p': 1, 'n': 3, 'b': 4, 'r': 5, 'q': 9}
         self.create_board()
         self.moves_executed = False
 
@@ -70,7 +70,6 @@ class ChessPuzzle(tk.Frame):
         for move, piece in legal_moves_with_pieces:
             row, col = move
             square_frame = self.squares[row][col]
-            square_frame.config(bg="#D3D3D3")  # Change background color to gray for all squares
 
             # Change background color to red for best move
             if best_move:
@@ -219,6 +218,7 @@ class ChessPuzzle(tk.Frame):
 class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.notebook = None
         self.title("Chess Puzzles")
         self.geometry("490x600")  # Increased height to accommodate the button
         self.create_notebook()
